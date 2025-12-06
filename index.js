@@ -24,6 +24,7 @@ const client = new Client({
   }),
   puppeteer: {
     headless: true,
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -32,7 +33,8 @@ const client = new Client({
       '--no-first-run',
       '--no-zygote',
       '--single-process',
-      '--disable-gpu'
+      '--disable-gpu',
+      '--disable-extensions'
     ]
   }
 });
@@ -93,10 +95,23 @@ client.on('disconnected', (reason) => {
   userInfo = null;
   
   // Attempt to reconnect
-  console.log('🔄 Attempting to reconnect...');
+  console.log('🔄 Attempting to reconnect in 5 seconds...');
   setTimeout(() => {
-    client.initialize();
+    console.log('🔄 Reinitializing client...');
+    client.initialize().catch(err => {
+      console.error('❌ Failed to reinitialize:', err.message);
+    });
   }, 5000);
+});
+
+// Handle uncaught errors to prevent crashes
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Unhandled Rejection:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('⚠️ Uncaught Exception:', error.message);
+  // Don't exit - try to keep running
 });
 
 // ============ API ROUTES ============
